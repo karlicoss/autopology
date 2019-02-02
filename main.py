@@ -11,11 +11,62 @@ initial = 0
 def as_loop(*l) -> Loop:
     return ''.join(map(str, l))
 
-N = 3
-rewrites = {}
-for b in range(N):
-    for delta in (-1, 1):
-        rewrites[as_loop(b, (b + delta) % N, b)] = str(b)
+Node = int
+
+class Thing:
+    def __init__(self, graph):
+        self.graph = graph
+
+    @property
+    def N(self):
+        return len(self.graph)
+
+    @property
+    def initial(self):
+        return 0
+
+    # def rewrites(self):
+    #     rr = {}
+    #     for ff, tts in self.graph.items():
+    #         for tt in tts:
+    #             rr[(as_loop(ff, tt, ff))] = str(ff)
+    #     return rr
+    # TODO shit, that's sort of dodgy and hacky... how do we know that?
+    def rewrites(self):
+        rr = {}
+        # for ff, tts in self.graph.items():
+        #     for tt in tts:
+        #         rr[(as_loop(ff, tt, ff))] = str(ff)
+        for a in self.graph:
+            for b in self.graph:
+                for c in self.graph:
+                    rr[(as_loop(a, b, c))] = as_loop(a, c) if a != c else str(a) # TODO rename to as_path
+                    # TODO don't like it, very hacky!
+        return rr
+
+    def walk(self, cur: Node, gen: Random):
+        return gen.choice(self.graph[cur])
+
+
+loop3 = Thing({
+    0: (1, 2),
+    1: (0, 2),
+    2: (0, 1),
+})
+
+sphere3 = Thing({
+    0: (1, 2, 3),
+    1: (0, 2, 3),
+    2: (0, 1, 3),
+    3: (0, 1, 2),
+})
+
+thing = loop3
+thing = sphere3
+
+
+
+rewrites = thing.rewrites()
 
 class Gen:
     def __init__(self):
@@ -32,7 +83,7 @@ class Gen:
     #     return l in self._cache
 
     def gen(self) -> Loop:
-        l = '0'
+        l = as_loop(thing.initial)
         while True:
             # TODO just generate all paths of certain complexity??
             cur = int(l[-1])
@@ -40,7 +91,7 @@ class Gen:
                 return self.contraction(l) # TODO looks a bit meh...
                 # if self.g.random() < 0.5: # TODO make configurable
                 #     return l
-            nn = str((cur + self.g.choice([-1, 1])) % N)
+            nn = str(thing.walk(cur, self.g))
             l += nn
 
     def contraction(self, l: Loop, maxsteps=1000) -> Loop:
@@ -74,7 +125,7 @@ class Gen:
 
 g = Gen()
 
-for _ in range(100000):
+for _ in range(1000):
     print(g.gen())
 print("Contracted elements:")
 
